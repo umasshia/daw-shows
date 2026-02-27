@@ -6,16 +6,19 @@ on:
     - cron: '0 2 * * *'
   workflow_dispatch:  # Allow manual trigger from Actions tab
 
+permissions:
+  contents: write
+
 jobs:
   update:
     runs-on: ubuntu-latest
     
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.10'
       
@@ -27,8 +30,8 @@ jobs:
       - name: Run scraper
         run: python scraper_multi.py
       
-      - name: Run YouTube matcher
-        run: python youtube_matcher_multi.py
+      - name: Run fast YouTube matcher (with caching)
+        run: python youtube_matcher_fast.py
       
       - name: Commit and push changes
         run: |
