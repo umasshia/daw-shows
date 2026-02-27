@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D@W Episode Database</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Courier New', monospace;
+            background: #f5f5f5;
+            color: #333;
+            line-height: 1.5;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            margin-bottom: 30px;
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 15px;
+            background: white;
+            padding: 20px;
+            border-radius: 4px;
+        }
+        h1 {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .controls {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+        select, input {
+            padding: 8px 12px;
+            background: white;
+            color: #333;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            font-family: inherit;
+            font-size: 13px;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: #0066cc;
+            box-shadow: 0 0 4px rgba(0, 102, 204, 0.3);
+        }
+        .stats {
+            display: flex;
+            gap: 30px;
+            font-size: 12px;
+            color: #666;
+        }
+        .stat {
+            display: flex;
+            gap: 8px;
+            align-items: baseline;
+        }
+        .stat-num {
+            font-weight: bold;
+            color: #0066cc;
+            font-size: 16px;
+        }
+        .table-wrapper {
+            overflow-x: auto;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+        th {
+            background: #f9f9f9;
+            color: #333;
+            padding: 12px;
+            text-align: left;
+            border-bottom: 2px solid #ddd;
+            cursor: pointer;
+            user-select: none;
+            white-space: nowrap;
+            font-weight: bold;
+        }
+        th:hover {
+            background: #f0f0f0;
+        }
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+            word-wrap: break-word;
+            max-width: 400px;
+        }
+        tr:hover {
+            background: #f9f9f9;
+        }
+        .num {
+            text-align: center;
+            width: 60px;
+            font-weight: bold;
+        }
+        .url {
+            color: #0066cc;
+            word-break: break-all;
+        }
+        .url a {
+            color: #0066cc;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 4px 8px;
+            background: #e8f2ff;
+            border-radius: 3px;
+        }
+        .url a:hover {
+            background: #d0e4ff;
+            text-decoration: underline;
+        }
+        .empty {
+            color: #999;
+            font-style: italic;
+        }
+        .status {
+            font-size: 11px;
+            padding: 12px;
+            background: white;
+            border-radius: 4px;
+            margin-top: 15px;
+            color: #666;
+            border: 1px solid #ddd;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+        .error {
+            color: #d32f2f;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Democracy at Work — Episode Database</h1>
+            <div class="controls">
+                <div>
+                    <label for="showSelect">Show:</label>
+                    <select id="showSelect">
+                        <option value="economic-update">Economic Update</option>
+                        <option value="capitalism-hits-home">Capitalism Hits Home</option>
+                        <option value="global-capitalism">Global Capitalism</option>
+                        <option value="the-dialectic-at-work">The Dialectic at Work</option>
+                        <option value="ask-prof-wolff">Ask Prof Wolff</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="searchBox">Search:</label>
+                    <input type="text" id="searchBox" placeholder="title, description, author..." />
+                </div>
+            </div>
+            <div class="stats">
+                <div class="stat">
+                    <span>Loaded:</span>
+                    <span class="stat-num" id="statLoaded">0</span>
+                    <span>entries</span>
+                </div>
+                <div class="stat">
+                    <span>Showing:</span>
+                    <span class="stat-num" id="statShowing">0</span>
+                    <span>results</span>
+                </div>
+                <div class="stat">
+                    <span>With YouTube:</span>
+                    <span class="stat-num" id="statYoutube">0</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-wrapper">
+            <table id="episodesTable">
+                <thead>
+                    <tr>
+                        <th onclick="sortTable('season')">S</th>
+                        <th onclick="sortTable('episode')">E</th>
+                        <th onclick="sortTable('title')">Title</th>
+                        <th onclick="sortTable('pub_date')">Published</th>
+                        <th onclick="sortTable('duration')">Duration</th>
+                        <th onclick="sortTable('author')">Author</th>
+                        <th onclick="sortTable('description')">Description</th>
+                        <th>Links</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <tr><td colspan="8" class="loading">Loading episodes...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="status">
+            <div id="statusMsg">Initializing...</div>
+        </div>
+    </div>
+
+    <script>
+        const SHOW_TITLES = {
+            'economic-update': 'Economic Update',
+            'capitalism-hits-home': 'Capitalism Hits Home',
+            'global-capitalism': 'Global Capitalism',
+            'the-dialectic-at-work': 'The Dialectic at Work',
+            'ask-prof-wolff': 'Ask Prof Wolff',
+        };
+
+        let episodes = [];
+        let currentShow = 'economic-update';
+        let sortField = null;
+        let sortAsc = true;
+
+        async function loadShow(showName) {
+            currentShow = showName;
+            document.getElementById('tableBody').innerHTML = '<tr><td colspan="8" class="loading">Loading episodes...</td></tr>';
+            
+            try {
+                let response = null;
+                const paths = [
+                    `./shows/${showName}/data/episodes.json`,
+                    `shows/${showName}/data/episodes.json`,
+                    `/shows/${showName}/data/episodes.json`
+                ];
+                
+                for (let path of paths) {
+                    try {
+                        const r = await fetch(path);
+                        if (r.ok) {
+                            response = r;
+                            break;
+                        }
+                    } catch (e) {
+                        continue;
+                    }
+                }
+                
+                if (!response) {
+                    throw new Error('Could not load episodes');
+                }
+                
+                episodes = await response.json();
+                if (!Array.isArray(episodes)) {
+                    throw new Error('Invalid data format');
+                }
+
+                document.querySelector('h1').textContent = `Democracy at Work — ${SHOW_TITLES[showName]}`;
+                renderTable('');
+                updateStatus(`Loaded ${episodes.length} episodes from ${SHOW_TITLES[showName]}`);
+            } catch (e) {
+                document.getElementById('tableBody').innerHTML = `<tr><td colspan="8" class="loading error">Error: ${e.message}</td></tr>`;
+                updateStatus(`Error loading: ${e.message}`);
+            }
+        }
+
+        function renderTable(filter = '') {
+            const tbody = document.getElementById('tableBody');
+            
+            let filtered = episodes;
+            if (filter.trim()) {
+                const search = filter.toLowerCase();
+                filtered = episodes.filter(ep => 
+                    (ep.title || '').toLowerCase().includes(search) ||
+                    (ep.description || '').toLowerCase().includes(search) ||
+                    (ep.author || '').toLowerCase().includes(search) ||
+                    (ep.pub_date || '').includes(filter) ||
+                    (ep.episode || '').includes(filter) ||
+                    (ep.season || '').includes(filter)
+                );
+            }
+
+            if (sortField) {
+                filtered.sort((a, b) => {
+                    let aVal = a[sortField] || '';
+                    let bVal = b[sortField] || '';
+                    if (sortField === 'season' || sortField === 'episode') {
+                        aVal = parseInt(aVal) || 0;
+                        bVal = parseInt(bVal) || 0;
+                        return sortAsc ? aVal - bVal : bVal - aVal;
+                    }
+                    aVal = aVal.toString().toLowerCase();
+                    bVal = bVal.toString().toLowerCase();
+                    const cmp = aVal.localeCompare(bVal);
+                    return sortAsc ? cmp : -cmp;
+                });
+            }
+
+            document.getElementById('statLoaded').textContent = episodes.length;
+            document.getElementById('statShowing').textContent = filtered.length;
+            const withYoutube = episodes.filter(e => e.youtube_url && e.youtube_url.trim()).length;
+            document.getElementById('statYoutube').textContent = withYoutube;
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 20px; color: #999;">No results</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(ep => {
+                const libsynLink = ep.libsyn_link ? `<a href="${ep.libsyn_link}" target="_blank">Libsyn</a>` : '';
+                const youtubeLink = ep.youtube_url ? `<a href="${ep.youtube_url}" target="_blank">YouTube</a>` : '';
+                const linksHtml = [libsynLink, youtubeLink].filter(Boolean).join(' | ') || '<span class="empty">—</span>';
+                
+                return `
+                    <tr>
+                        <td class="num">${ep.season || '?'}</td>
+                        <td class="num">${ep.episode || '?'}</td>
+                        <td><strong>${ep.title}</strong></td>
+                        <td>${ep.pub_date || '—'}</td>
+                        <td>${ep.duration || '—'}</td>
+                        <td>${ep.author || '—'}</td>
+                        <td>${ep.description || '—'}</td>
+                        <td class="url">${linksHtml}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function sortTable(field) {
+            if (sortField === field) {
+                sortAsc = !sortAsc;
+            } else {
+                sortField = field;
+                sortAsc = true;
+            }
+            renderTable(document.getElementById('searchBox').value);
+        }
+
+        function updateStatus(msg) {
+            document.getElementById('statusMsg').textContent = `${msg} — Last updated: ${new Date().toLocaleString()}`;
+        }
+
+        document.getElementById('showSelect').addEventListener('change', (e) => {
+            loadShow(e.target.value);
+        });
+
+        document.getElementById('searchBox').addEventListener('input', (e) => {
+            renderTable(e.target.value);
+        });
+
+        loadShow('economic-update');
+    </script>
+</body>
+</html>
