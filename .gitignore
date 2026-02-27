@@ -1,8 +1,9 @@
 # Data files
-data/
 *.csv
-*.json
 *.jsonl
+
+# But DO track episode data for serving on GitHub Pages
+!shows/**/*.json
 
 # Python
 __pycache__/
