@@ -103,7 +103,10 @@
             word-wrap: break-word;
             max-width: 400px;
         }
-        tr:hover {
+        tbody tr {
+            cursor: pointer;
+        }
+        tbody tr:hover {
             background: #f9f9f9;
         }
         .num {
@@ -147,6 +150,110 @@
         }
         .error {
             color: #d32f2f;
+        }
+        
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.3s ease;
+        }
+        .modal.show {
+            display: flex;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .modal-content {
+            background-color: white;
+            margin: auto;
+            padding: 30px;
+            border-radius: 4px;
+            max-width: 800px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            animation: slideIn 0.3s ease;
+        }
+        @keyframes slideIn {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 15px;
+        }
+        .modal-header h2 {
+            font-size: 20px;
+            color: #333;
+            margin: 0;
+        }
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            color: #999;
+        }
+        .close-btn:hover {
+            color: #333;
+        }
+        .modal-detail {
+            margin-bottom: 15px;
+        }
+        .modal-detail-label {
+            font-weight: bold;
+            color: #0066cc;
+            margin-bottom: 5px;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .modal-detail-value {
+            color: #333;
+            padding: 8px;
+            background: #f9f9f9;
+            border-left: 3px solid #0066cc;
+            padding-left: 12px;
+            border-radius: 2px;
+            word-wrap: break-word;
+        }
+        .modal-links {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            border-top: 2px solid #ddd;
+            padding-top: 15px;
+        }
+        .modal-links a {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            background: #0066cc;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .modal-links a:hover {
+            background: #0052a3;
+        }
+        .modal-links a.disabled {
+            background: #ccc;
+            cursor: not-allowed;
         }
     </style>
 </head>
@@ -210,6 +317,18 @@
 
         <div class="status">
             <div id="statusMsg">Initializing...</div>
+        </div>
+    </div>
+
+    <!-- Episode Detail Modal -->
+    <div id="episodeModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle"></h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div id="modalBody"></div>
+            <div class="modal-links" id="modalLinks"></div>
         </div>
     </div>
 
@@ -314,13 +433,13 @@
                 return;
             }
 
-            tbody.innerHTML = filtered.map(ep => {
+            tbody.innerHTML = filtered.map((ep, idx) => {
                 const libsynLink = ep.libsyn_link ? `<a href="${ep.libsyn_link}" target="_blank">Libsyn</a>` : '';
                 const youtubeLink = ep.youtube_url ? `<a href="${ep.youtube_url}" target="_blank">YouTube</a>` : '';
                 const linksHtml = [libsynLink, youtubeLink].filter(Boolean).join(' | ') || '<span class="empty">—</span>';
                 
                 return `
-                    <tr>
+                    <tr onclick="viewEpisode(${episodes.indexOf(ep)})">
                         <td class="num">${ep.season || '?'}</td>
                         <td class="num">${ep.episode || '?'}</td>
                         <td><strong>${ep.title}</strong></td>
@@ -343,6 +462,64 @@
             }
             renderTable(document.getElementById('searchBox').value);
         }
+
+        function viewEpisode(index) {
+            const ep = episodes[index];
+            document.getElementById('modalTitle').textContent = `S${ep.season || '?'}E${ep.episode || '?'} — ${ep.title}`;
+            
+            const details = `
+                <div class="modal-detail">
+                    <div class="modal-detail-label">Title</div>
+                    <div class="modal-detail-value">${ep.title}</div>
+                </div>
+                <div class="modal-detail">
+                    <div class="modal-detail-label">Season / Episode</div>
+                    <div class="modal-detail-value">Season ${ep.season || '?'} / Episode ${ep.episode || '?'}</div>
+                </div>
+                ${ep.pub_date ? `<div class="modal-detail">
+                    <div class="modal-detail-label">Published</div>
+                    <div class="modal-detail-value">${ep.pub_date}</div>
+                </div>` : ''}
+                ${ep.duration ? `<div class="modal-detail">
+                    <div class="modal-detail-label">Duration</div>
+                    <div class="modal-detail-value">${ep.duration}</div>
+                </div>` : ''}
+                ${ep.author ? `<div class="modal-detail">
+                    <div class="modal-detail-label">Author</div>
+                    <div class="modal-detail-value">${ep.author}</div>
+                </div>` : ''}
+                ${ep.description ? `<div class="modal-detail">
+                    <div class="modal-detail-label">Description</div>
+                    <div class="modal-detail-value">${ep.description}</div>
+                </div>` : ''}
+                ${ep.youtube_id ? `<div class="modal-detail">
+                    <div class="modal-detail-label">YouTube ID</div>
+                    <div class="modal-detail-value">${ep.youtube_id}</div>
+                </div>` : ''}
+                ${ep.libsyn_link ? `<div class="modal-detail">
+                    <div class="modal-detail-label">Libsyn URL</div>
+                    <div class="modal-detail-value"><a href="${ep.libsyn_link}" target="_blank">${ep.libsyn_link}</a></div>
+                </div>` : ''}
+            `;
+            
+            document.getElementById('modalBody').innerHTML = details;
+            
+            const linksHtml = `
+                ${ep.libsyn_link ? `<a href="${ep.libsyn_link}" target="_blank">Open in Libsyn</a>` : '<a class="disabled">No Libsyn</a>'}
+                ${ep.youtube_url ? `<a href="${ep.youtube_url}" target="_blank">Watch on YouTube</a>` : '<a class="disabled">No YouTube</a>'}
+            `;
+            document.getElementById('modalLinks').innerHTML = linksHtml;
+            
+            document.getElementById('episodeModal').classList.add('show');
+        }
+
+        function closeModal() {
+            document.getElementById('episodeModal').classList.remove('show');
+        }
+
+        document.getElementById('episodeModal').addEventListener('click', (e) => {
+            if (e.target.id === 'episodeModal') closeModal();
+        });
 
         function updateStatus(msg) {
             document.getElementById('statusMsg').textContent = `${msg} — Last updated: ${new Date().toLocaleString()}`;
