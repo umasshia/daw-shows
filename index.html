@@ -226,6 +226,9 @@
         let currentShow = 'economic-update';
         let sortField = null;
         let sortAsc = true;
+        
+        // Get base path for GitHub Pages support
+        const basePath = window.location.pathname.replace(/\/index\.html$/, '').replace(/\/$/, '') || '/daw-shows';
 
         async function loadShow(showName) {
             currentShow = showName;
@@ -234,9 +237,9 @@
             try {
                 let response = null;
                 const paths = [
-                    `./shows/${showName}/data/episodes.json`,
-                    `shows/${showName}/data/episodes.json`,
-                    `/shows/${showName}/data/episodes.json`
+                    `${basePath}/shows/${showName}/data/episodes.json`,
+                    `/daw-shows/shows/${showName}/data/episodes.json`,
+                    `./shows/${showName}/data/episodes.json`
                 ];
                 
                 for (let path of paths) {
