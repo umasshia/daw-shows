@@ -21,8 +21,8 @@ SHOWS = [
 ]
 
 YOUTUBE_PLAYLISTS = {
-    'economic-update': 'https://www.youtube.com/playlist?list=PLPJpiw1WYdTO6IoZ3VaDrQt-RJZsbG6nB',
-    'capitalism-hits-home': 'https://www.youtube.com/playlist?list=PLPJpiw1WYdTO6IoZ3VaDrQt-RJZsbG6nB',
+    'economic-update': 'https://www.youtube.com/playlist?list=PLPJpiw1WYdTMLIyASxEheOVjl1vKkajYj',
+    'capitalism-hits-home': 'https://www.youtube.com/playlist?list=PLPJpiw1WYdTNYvke-gNRdml1Z2lwz0iEH',
     'global-capitalism': 'https://www.youtube.com/playlist?list=PLPJpiw1WYdTO6IoZ3VaDrQt-RJZsbG6nB',
     'the-dialectic-at-work': 'https://www.youtube.com/playlist?list=PLPJpiw1WYdTNjEmBz7JTKH9Dnfi3sWvfr',
     'ask-prof-wolff': 'https://www.youtube.com/playlist?list=PLPJpiw1WYdTPtnI9V-LaYVR97rmcCcFCQ',
