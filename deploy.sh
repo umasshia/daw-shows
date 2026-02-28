@@ -28,9 +28,9 @@ else
 fi
 echo ""
 
-# 2. Run YouTube matcher
-echo -e "${BLUE}[2/3] Running YouTube matcher...${NC}"
-python3 youtube_matcher_multi.py
+# 2. Run fast YouTube matcher with caching
+echo -e "${BLUE}[2/3] Running fast YouTube matcher (with caching)...${NC}"
+python3 youtube_matcher_fast.py
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✓ YouTube matcher completed${NC}"
 else
