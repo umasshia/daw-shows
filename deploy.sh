@@ -29,7 +29,7 @@ fi
 echo ""
 
 # 2. Run fast YouTube matcher with caching
-echo -e "${BLUE}[2/3] Running fast YouTube matcher (with caching)...${NC}"
+echo -e "${BLUE}[2/4] Running fast YouTube matcher (with caching)...${NC}"
 python3 youtube_matcher_fast.py
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✓ YouTube matcher completed${NC}"
@@ -38,16 +38,26 @@ else
 fi
 echo ""
 
-# 3. Commit and push to GitHub
-echo -e "${BLUE}[3/3] Deploying to GitHub...${NC}"
+# 3. Generate HTML frontends
+echo -e "${BLUE}[3/4] Generating HTML frontends...${NC}"
+python3 generate_index.py
+if [ $? -eq 0 ]; then
+    echo -e "${GREEN}✓ Frontend generation completed${NC}"
+else
+    echo -e "${YELLOW}⚠ Frontend generation encountered issues (continuing)${NC}"
+fi
+echo ""
+
+# 4. Commit and push to GitHub
+echo -e "${BLUE}[4/4] Deploying to GitHub...${NC}"
 
 # Check if there are changes
 if git diff --quiet && git diff --cached --quiet; then
     echo -e "${YELLOW}No changes detected${NC}"
     echo ""
 else
-    # Stage episode data files
-    git add -f shows/*/data/episodes.json
+    # Stage episode data and HTML files
+    git add -f shows/*/data/episodes.json shows/*/index.html
     
     # Commit with timestamp
     TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')

@@ -5,20 +5,50 @@ Scrapes episodes from RSS feeds and saves to structured show directories
 """
 
 import sys
-import csv
 import json
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from datetime import datetime
+from urllib.request import urlopen, Request
+from urllib.error import URLError
 import re
 
-SHOWS = {
+RSS_FEEDS = {
+    'economic-update': 'https://rss.libsyn.com/shows/84104/destinations/398074.xml',
+    'capitalism-hits-home': 'https://rss.libsyn.com/shows/129530/destinations/784100.xml',
+    'global-capitalism': 'https://rss.libsyn.com/shows/113799/destinations/640710.xml',
+    'the-dialectic-at-work': 'https://rss.libsyn.com/shows/535257/destinations/4606092.xml',
+    'ask-prof-wolff': 'https://rss.libsyn.com/shows/412178/destinations/3416240.xml',
+}
+
+LOCAL_RSS = {
     'economic-update': 'rss/economic update.xml',
     'capitalism-hits-home': 'rss/capitalism hits home.xml',
     'global-capitalism': 'rss/global capitalism.xml',
     'the-dialectic-at-work': 'rss/the dialectic at work.xml',
     'ask-prof-wolff': 'rss/ask prof wolff.xml',
 }
+
+def download_rss(show_name):
+    """Download fresh RSS feed and save locally"""
+    url = RSS_FEEDS[show_name]
+    local_path = Path(LOCAL_RSS[show_name])
+    local_path.parent.mkdir(parents=True, exist_ok=True)
+
+    try:
+        req = Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urlopen(req, timeout=30) as resp:
+            data = resp.read()
+        with open(local_path, 'wb') as f:
+            f.write(data)
+        print(f"   ✓ Downloaded RSS feed ({len(data) // 1024} KB)")
+        return True
+    except (URLError, OSError) as e:
+        print(f"   ⚠️  Could not download RSS: {e}")
+        if local_path.exists():
+            print(f"   Using cached local file")
+            return True
+        return False
 
 def parse_rss(rss_file):
     """Parse RSS XML file"""
@@ -93,44 +123,58 @@ def parse_rss(rss_file):
         print(f"❌ Error parsing RSS: {e}")
         return []
 
+def load_existing_episodes(show_name):
+    """Load existing episodes to preserve YouTube data"""
+    json_file = Path(f'shows/{show_name}/data/episodes.json')
+    if json_file.exists():
+        try:
+            with open(json_file, 'r', encoding='utf-8') as f:
+                episodes = json.load(f)
+            # Index by libsyn_link for quick lookup
+            return {ep.get('libsyn_link', ''): ep for ep in episodes if ep.get('libsyn_link')}
+        except Exception:
+            return {}
+    return {}
+
+def merge_episodes(new_episodes, existing_map):
+    """Merge new episodes with existing data, preserving YouTube info and scraped_date"""
+    merged = []
+    new_count = 0
+    for ep in new_episodes:
+        link = ep.get('libsyn_link', '')
+        if link in existing_map:
+            old = existing_map[link]
+            # Preserve YouTube data and scraped_date from existing
+            for key in ('youtube_url', 'youtube_id', 'youtube_name', 'scraped_date'):
+                if old.get(key):
+                    ep[key] = old[key]
+        else:
+            new_count += 1
+        merged.append(ep)
+    return merged, new_count
+
 def save_episodes(show_name, episodes):
-    """Save episodes to CSV, JSON, and JSONL formats"""
+    """Save episodes to JSON format"""
     show_dir = Path(f'shows/{show_name}')
     data_dir = show_dir / 'data'
     data_dir.mkdir(parents=True, exist_ok=True)
-    
+
     if not episodes:
         print(f"❌ No episodes to save")
         return False
-    
-    # Save to CSV
-    csv_file = data_dir / 'episodes.csv'
-    with open(csv_file, 'w', newline='', encoding='utf-8') as f:
-        writer = csv.DictWriter(f, fieldnames=episodes[0].keys())
-        writer.writeheader()
-        writer.writerows(episodes)
-    print(f"✓ Saved {csv_file}")
-    
+
     # Save to JSON
     json_file = data_dir / 'episodes.json'
     with open(json_file, 'w', encoding='utf-8') as f:
         json.dump(episodes, f, indent=2, ensure_ascii=False)
-    print(f"✓ Saved {json_file}")
-    
-    # Save to JSONL
-    jsonl_file = data_dir / 'episodes.jsonl'
-    with open(jsonl_file, 'w', encoding='utf-8') as f:
-        for ep in episodes:
-            f.write(json.dumps(ep, ensure_ascii=False) + '\n')
-    print(f"✓ Saved {jsonl_file}")
-    
+
     # Save metadata
     metadata_file = data_dir / 'metadata.txt'
     with open(metadata_file, 'w', encoding='utf-8') as f:
         f.write(f"Show: {show_name}\n")
         f.write(f"Total Episodes: {len(episodes)}\n")
         f.write(f"Scraped: {datetime.now().isoformat()}\n")
-    
+
     return True
 
 def main():
@@ -139,37 +183,38 @@ def main():
         show_names = [sys.argv[1]]
     else:
         # Process all shows
-        show_names = list(SHOWS.keys())
-    
+        show_names = list(RSS_FEEDS.keys())
+
     print("\n" + "="*70)
     print("🎙️  Democracy at Work RSS Scraper")
     print("="*70)
-    
+
     for show_name in show_names:
-        if show_name not in SHOWS:
+        if show_name not in RSS_FEEDS:
             print(f"\n❌ Unknown show: {show_name}")
-            print(f"   Available: {', '.join(SHOWS.keys())}")
+            print(f"   Available: {', '.join(RSS_FEEDS.keys())}")
             continue
-        
-        rss_file = SHOWS[show_name]
-        rss_path = Path(rss_file)
-        
-        if not rss_path.exists():
-            print(f"\n❌ RSS file not found: {rss_file}")
-            continue
-        
+
         print(f"\n📺 Processing: {show_name}")
-        print(f"   RSS: {rss_file}")
-        
+
+        # Download fresh RSS feed
+        if not download_rss(show_name):
+            print(f"   ❌ Skipping (no RSS data)")
+            continue
+
+        rss_path = Path(LOCAL_RSS[show_name])
         episodes = parse_rss(rss_path)
-        
+
         if episodes:
-            print(f"   ✓ Parsed {len(episodes)} episodes")
+            # Merge with existing data to preserve YouTube links
+            existing = load_existing_episodes(show_name)
+            episodes, new_count = merge_episodes(episodes, existing)
+            print(f"   ✓ Parsed {len(episodes)} episodes ({new_count} new)")
             if save_episodes(show_name, episodes):
                 print(f"   ✓ Saved to shows/{show_name}/data/")
         else:
             print(f"   ❌ No episodes found")
-    
+
     print("\n" + "="*70)
     print("✓ Done!")
 

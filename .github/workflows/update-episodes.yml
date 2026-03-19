@@ -25,14 +25,17 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install yt-dlp feedparser
-      
-      - name: Run scraper
+          pip install yt-dlp
+
+      - name: Run scraper (downloads fresh RSS feeds)
         run: python scraper_multi.py
-      
+
       - name: Run fast YouTube matcher (with caching)
         run: python youtube_matcher_fast.py
-      
+
+      - name: Generate HTML frontends
+        run: python generate_index.py
+
       - name: Commit and push changes
         run: |
           git config --local user.email "action@github.com"
