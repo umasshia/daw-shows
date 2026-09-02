@@ -1,3 +1,3 @@
 Show: economic-update
-Total Episodes: 586
-Scraped: 2026-09-01T02:13:50.213019
+Total Episodes: 587
+Scraped: 2026-09-02T02:24:30.159624
